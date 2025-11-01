@@ -34,5 +34,22 @@ k9s
 - cd src/auth/manifests
 - kubectl apply -f ./
 
+![alt text](image-3.png)
+![alt text](image-4.png)
 # check in k9s two instance of auth service created
 ![alt text](image.png)
+
+# you can go to an instance and press to enter shell
+# show all env config
+env 
+
+# kubernetes
+![alt text](image-1.png)
+
+# scale replicas
+kubectl scale deployment --replicas=6 service
+![alt text](image-2.png)
+
+- https://kubernetes.io/docs/concepts/overview/working-with-objects/
+- https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/
+- https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec
