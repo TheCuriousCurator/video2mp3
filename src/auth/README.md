@@ -33,6 +33,7 @@ k9s
 # create deployment.apps/auth, configmap/auth-configmap, secret/auth-secret, service/auth
 - cd src/auth/manifests
 - kubectl apply -f ./
+- kubectl delete -f ./
 
 ![alt text](images/image-3.png)
 ![alt text](images/image-4.png)
