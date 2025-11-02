@@ -1,3 +1,5 @@
 .venv
 .mypy_cache
 .git
+.env
+__pycache__

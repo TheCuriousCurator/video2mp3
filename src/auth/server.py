@@ -1,5 +1,3 @@
-
-# jswt = json web token
 import jwt, datetime, os
 from flask import Flask, request
 from flask_mysqldb import MySQL
@@ -7,25 +5,27 @@ from flask_mysqldb import MySQL
 server = Flask(__name__)
 mysql = MySQL(server)
 
-
+# config
 server.config["MYSQL_HOST"] = os.environ.get("MYSQL_HOST")
 server.config["MYSQL_USER"] = os.environ.get("MYSQL_USER")
 server.config["MYSQL_PASSWORD"] = os.environ.get("MYSQL_PASSWORD")
 server.config["MYSQL_DB"] = os.environ.get("MYSQL_DB")
-server.config["MYSQL_PORT"] = os.environ.get("MYSQL_PORT")
+server.config["MYSQL_PORT"] = int(os.environ.get("MYSQL_PORT"))
 
-# print(server.config["MYSQL_HOST"])
 
-server.route("/login", method=["POST"])
+@server.route("/login", methods=["POST"])
 def login():
     auth = request.authorization
+    # print(auth)
     if not auth:
         return "missing credentials", 401
+
     # check db for username and password
     cur = mysql.connection.cursor()
     res = cur.execute(
-        "SELECT email, password FROM USER WHERE email=%s", (auth.username,)
+        "SELECT email, password FROM user WHERE email=%s", (auth.username,)
     )
+
     if res > 0:
         user_row = cur.fetchone()
         email = user_row[0]
@@ -37,7 +37,6 @@ def login():
             return createJWT(auth.username, os.environ.get("JWT_SECRET"), True)
     else:
         return "invalid credentials", 401
-    
 
 @server.route("/validate", methods=["POST"])
 def validate():
@@ -60,15 +59,14 @@ def validate():
 
     return decoded, 200
 
-
 def createJWT(username, secret, authz):
     return jwt.encode(
         {
             "username": username,
             "exp": datetime.datetime.now(tz=datetime.timezone.utc)
             + datetime.timedelta(days=1),
-            "iac": datetime.datetime.now(tz=datetime.timezone.utc),
-            "admin": authz
+            "iat": datetime.datetime.now(datetime.timezone.utc),
+            "admin": authz,
         },
         secret,
         algorithm="HS256",
@@ -76,5 +74,4 @@ def createJWT(username, secret, authz):
 
 
 if __name__ == "__main__":
-    # 0.0.0.0 allows to listen to all ip-address
-    server.run(host="0.0.0.0", port=5000)
+    server.run(host="0.0.0.0", port=5000, debug=True)
