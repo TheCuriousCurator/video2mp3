@@ -14,11 +14,11 @@ The Notification service provides:
 
 ```
 RabbitMQ "mp3" queue
-    “
+    ï¿½
 Notification Workers (4 replicas)
-    “
+    ï¿½
 Gmail SMTP (smtp.gmail.com:587)
-    “
+    ï¿½
 User receives email notification
 ```
 
@@ -98,7 +98,7 @@ Email sending logic that:
 ### Generate Gmail App Password
 
 1. Go to Google Account settings: https://myaccount.google.com/
-2. Navigate to Security ’ 2-Step Verification
+2. Navigate to Security ï¿½ 2-Step Verification
 3. Scroll down to "App passwords"
 4. Generate a new app password for "Mail"
 5. Copy the 16-character password
@@ -108,9 +108,11 @@ Email sending logic that:
 
 Edit `.env` file in project root:
 ```bash
-GMAIL_ADDRESS="your-email@gmail.com"
-GMAIL_PASSWORD="your-16-char-app-password"
+GMAIL_ADDRESS=your-email@gmail.com
+GMAIL_PASSWORD=your-16-char-app-password
 ```
+
+**Important:** Do NOT use quotes around values. The `envsubst` command in deploy.sh will add quotes when processing the template, so quotes in `.env` will cause double-quoting and YAML parsing errors.
 
 ## Docker Build & Deploy
 

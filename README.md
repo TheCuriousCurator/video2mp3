@@ -9,6 +9,7 @@ This project demonstrates a complete microservices system with:
 - **Gateway Service** (Flask) - API entry point, file upload/download, message publishing
 - **Auth Service** (Flask) - JWT-based authentication and validation
 - **Converter Service** (Python) - Asynchronous video-to-MP3 processing workers (4 replicas)
+- **Notification Service** (Python) - Email notifications when MP3 conversion completes (4 replicas)
 - **RabbitMQ** - Message queue for asynchronous task management
 - **MySQL** - User authentication database (host machine)
 - **MongoDB** - Video/MP3 file storage using GridFS (host machine)
@@ -29,13 +30,20 @@ This project demonstrates a complete microservices system with:
 # 1. Setup host databases (first time only)
 ./setup-host.sh
 
-# 2. Deploy all services to Kubernetes
+# 2. Configure Gmail for notifications (create .env file)
+# IMPORTANT: No quotes around values
+cat > .env << 'EOF'
+GMAIL_ADDRESS=your-email@gmail.com
+GMAIL_PASSWORD=your-16-char-app-password
+EOF
+
+# 3. Deploy all services to Kubernetes
 ./deploy.sh
 
-# 3. Start port forwarding for local access
+# 4. Start port forwarding for local access
 ./start-services.sh
 
-# 4. Test the system
+# 5. Test the system
 curl -X POST -u "dksahuji@gmail.com:Admin123" http://video2mp3.com/login
 ```
 
@@ -86,6 +94,7 @@ video2mp3/
 │   ├── auth/          # JWT authentication service
 │   ├── gateway/       # API gateway and file handling
 │   ├── converter/     # Video-to-MP3 conversion workers
+│   ├── notification/  # Email notification service
 │   └── rabbitMQ/      # Message queue configuration
 ├── deploy.sh          # Automated deployment
 ├── setup-host.sh      # Database configuration
