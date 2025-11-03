@@ -17,8 +17,8 @@ MONGODB_HOST = os.environ.get("MONGODB_HOST", "host.minikube.internal")
 MONGODB_PORT = os.environ.get("MONGODB_PORT", "27017")
 
 # manages mongodb connections for flask app
-mongo_video = PyMongo(server, uri=f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}/video")
-mongo_mp3 = PyMongo(server, uri=f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}/mp3")
+mongo_video = PyMongo(server, uri=f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}/videos")
+mongo_mp3 = PyMongo(server, uri=f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}/mp3s")
 
 fs_videos = gridfs.GridFS(mongo_video.db)
 fs_mp3s = gridfs.GridFS(mongo_mp3.db)
