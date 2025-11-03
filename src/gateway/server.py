@@ -11,12 +11,14 @@ from storage import util
 from bson.objectid import ObjectId
 
 server = Flask(__name__)
-# server.config["MONGO_URI"] = "mongodb://host.minikube.internal:27017/videos"
-# database: videos
-# manages mongodb connections for flask app
-mongo_video = PyMongo(server, uri="mongodb://host.minikube.internal:27017/videos")
 
-mongo_mp3 = PyMongo(server, uri="mongodb://host.minikube.internal:27017/mp3s")
+# Get MongoDB connection details from environment variables
+MONGODB_HOST = os.environ.get("MONGODB_HOST", "host.minikube.internal")
+MONGODB_PORT = os.environ.get("MONGODB_PORT", "27017")
+
+# manages mongodb connections for flask app
+mongo_video = PyMongo(server, uri=f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}/videos")
+mongo_mp3 = PyMongo(server, uri=f"mongodb://{MONGODB_HOST}:{MONGODB_PORT}/mp3s")
 
 fs_videos = gridfs.GridFS(mongo_video.db)
 fs_mp3s = gridfs.GridFS(mongo_mp3.db)
