@@ -20,13 +20,13 @@ echo "Step 3: Starting port forwarding..."
 echo ""
 echo "Step 4: Logging in and getting JWT token..."
 rm -f token.txt
-curl -X POST -u 'dksahuji@gmail.com:Admin123' http://video2mp3.com/login > token.txt
+TOKEN=$(curl -X POST -u "dksahuji@gmail.com:Admin123" http://video2mp3.com/login 2>/dev/null)
 echo ""
 echo "Token saved to token.txt"
 
 echo ""
 echo "Step 5: Uploading video file..."
-curl -X POST -F 'file=@./agentic_ai-using-external-feedback.mp4' -H "Authorization: Bearer $(cat token.txt)" http://video2mp3.com/upload
+curl -X POST -F 'file=@./agentic_ai-using-external-feedback.mp4' -H "Authorization: Bearer $TOKEN" http://video2mp3.com/upload
 
 echo ""
 echo ""
