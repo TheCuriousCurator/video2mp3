@@ -176,7 +176,13 @@ This configures MySQL and MongoDB to accept connections from minikube pods (192.
 
 ## Complete Demo Walkthrough
 
-The `run-demo.sh` script performs a complete end-to-end demonstration of the system. Let's break it down step by step.
+The `run-demo.sh` script performs a complete end-to-end demonstration of the system. You can run it directly:
+
+```bash
+./run-demo.sh
+```
+
+Or follow along manually with the steps below.
 
 ### Step 1: Clean Slate - Undeploy Existing Services
 
@@ -361,9 +367,12 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:5000
 
 ```bash
 rm -f token.txt
-curl -X POST -u 'dksahuji@gmail.com:Admin123' http://video2mp3.com/login > token.txt
+TOKEN=$(curl -X POST -u "dksahuji@gmail.com:Admin123" http://video2mp3.com/login 2>/dev/null)
+echo ""
 echo "Token saved to token.txt"
 ```
+
+**Note:** The script stores the token in the `$TOKEN` environment variable for immediate use in subsequent commands.
 
 **What happens internally:**
 
@@ -431,18 +440,21 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRrc2FodWppQGdtYWlsLmNvbSI
 
 **Decode token to see payload:**
 ```bash
-# Copy token from token.txt and decode at https://jwt.io
-cat token.txt
+# Decode at https://jwt.io or use Python
+echo $TOKEN
 
 # Or decode with Python
-python3 << 'EOF'
-import base64, json
-token = open('token.txt').read().strip()
-payload = token.split('.')[1]
-# Add padding if needed
-payload += '=' * (4 - len(payload) % 4)
-decoded = base64.urlsafe_b64decode(payload)
-print(json.dumps(json.loads(decoded), indent=2))
+python3 << EOF
+import base64, json, os
+token = os.environ.get('TOKEN', '')
+if token:
+    payload = token.split('.')[1]
+    # Add padding if needed
+    payload += '=' * (4 - len(payload) % 4)
+    decoded = base64.urlsafe_b64decode(payload)
+    print(json.dumps(json.loads(decoded), indent=2))
+else:
+    print("TOKEN environment variable not set")
 EOF
 ```
 
@@ -457,11 +469,11 @@ EOF
 **Verify token:**
 ```bash
 # Check token was saved
-cat token.txt
+echo $TOKEN
 # Should show JWT token string
 
 # Token should work for authentication
-curl -H "Authorization: Bearer $(cat token.txt)" http://video2mp3.com/upload
+curl -H "Authorization: Bearer $TOKEN" http://video2mp3.com/upload
 # Should NOT return 401 (may return 400 if no file provided, but that's OK)
 ```
 
@@ -470,10 +482,7 @@ curl -H "Authorization: Bearer $(cat token.txt)" http://video2mp3.com/upload
 ### Step 5: Upload Video File
 
 ```bash
-curl -X POST \
-  -F 'file=@./agentic_ai-using-external-feedback.mp4' \
-  -H "Authorization: Bearer $(cat token.txt)" \
-  http://video2mp3.com/upload
+curl -X POST -F 'file=@./agentic_ai-using-external-feedback.mp4' -H "Authorization: Bearer $TOKEN" http://video2mp3.com/upload
 ```
 
 **What happens internally:**
@@ -579,6 +588,28 @@ curl -X POST \
 success!
 ```
 
+**Demo Complete!**
+
+After the upload completes, the script outputs what happens next:
+
+```
+==========================================
+Demo Complete!
+==========================================
+
+What happens next:
+  1. Converter workers are processing the video → MP3
+  2. When complete, notification service will send email to: dksahuji@gmail.com
+  3. Email subject: 'MP3 Download'
+  4. Email body: 'mp3 file_id: <ObjectId> is now ready!'
+
+Monitor progress:
+  kubectl logs -l app=converter -f    # Watch conversion
+  kubectl logs -l app=notification -f # Watch email sending
+
+Check your email inbox for the notification!
+```
+
 **What to monitor:**
 ```bash
 # Watch converter process video
@@ -605,7 +636,7 @@ Email sent successfully!
 
 ---
 
-### Step 6: Check Email & Download MP3
+### Step 6: Download MP3 File (After Receiving Email)
 
 **Email notification:**
 - **To**: dksahuji@gmail.com
@@ -613,10 +644,19 @@ Email sent successfully!
 - **Body**: `mp3 file_id: 6908d08362046551e1ec6efa is now ready!`
 
 **Download the MP3:**
+
+Replace `<file_id>` with the ObjectId from your email notification:
+
 ```bash
-# Replace <file_id> with ObjectId from email
 curl --output mp3_download.mp3 -X GET \
-  -H "Authorization: Bearer $(cat token.txt)" \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://video2mp3.com/download?fid=<file_id>"
+```
+
+**Example:**
+```bash
+curl --output mp3_download.mp3 -X GET \
+  -H "Authorization: Bearer $TOKEN" \
   "http://video2mp3.com/download?fid=6908d08362046551e1ec6efa"
 ```
 
@@ -1925,7 +1965,7 @@ spec:
 
 **Generated from:** `run-demo.sh`
 
-**Last Updated:** 2025-11-03
+**Last Updated:** 2025-01-03 (Updated to match run-demo.sh script)
 
 **See also:**
 - [README.md](./README.md) - Project overview
