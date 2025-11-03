@@ -11,4 +11,5 @@ members = [
     "src/auth",
     "src/gateway",
     "src/converter",
+    "src/notification",
 ]
