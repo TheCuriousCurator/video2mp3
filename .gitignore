@@ -2,4 +2,5 @@
 .mypy_cache
 .git
 .env
+.claude
 __pycache__
