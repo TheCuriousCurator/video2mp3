@@ -25,6 +25,14 @@ sudo pkill -f 'kubectl port-forward' 2>/dev/null || true
 echo "✓ Port forwards stopped"
 echo ""
 
+# Delete notification
+echo "Undeploying notification..."
+safe_delete deployment notification
+safe_delete configmap notification-configmap
+safe_delete secret notification-secret
+echo "✓ Notification removed"
+echo ""
+
 # Delete converter
 echo "Undeploying converter..."
 safe_delete deployment converter
@@ -67,13 +75,13 @@ echo ""
 echo "Checking for remaining resources..."
 echo ""
 
-REMAINING_DEPLOYMENTS=$(kubectl get deployments -l 'app in (auth,gateway,converter)' --no-headers 2>/dev/null | wc -l)
+REMAINING_DEPLOYMENTS=$(kubectl get deployments -l 'app in (auth,gateway,converter,notification)' --no-headers 2>/dev/null | wc -l)
 REMAINING_SERVICES=$(kubectl get services -l 'app in (auth,gateway,rabbitmq)' --no-headers 2>/dev/null | wc -l)
 REMAINING_STATEFULSETS=$(kubectl get statefulsets -l 'app=rabbitmq' --no-headers 2>/dev/null | wc -l)
 
 if [ "$REMAINING_DEPLOYMENTS" -gt 0 ] || [ "$REMAINING_SERVICES" -gt 0 ] || [ "$REMAINING_STATEFULSETS" -gt 0 ]; then
     echo "⚠️  Some resources still remain:"
-    [ "$REMAINING_DEPLOYMENTS" -gt 0 ] && kubectl get deployments -l 'app in (auth,gateway,converter)'
+    [ "$REMAINING_DEPLOYMENTS" -gt 0 ] && kubectl get deployments -l 'app in (auth,gateway,converter,notification)'
     [ "$REMAINING_SERVICES" -gt 0 ] && kubectl get services -l 'app in (auth,gateway,rabbitmq)'
     [ "$REMAINING_STATEFULSETS" -gt 0 ] && kubectl get statefulsets -l 'app=rabbitmq'
     echo ""

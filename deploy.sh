@@ -4,6 +4,7 @@
 set -e
 
 echo "🚀 Deploying video2mp3 to Kubernetes..."
+./start-services.sh
 
 # Auto-detect minikube host IP
 if command -v minikube &> /dev/null; then
@@ -27,6 +28,7 @@ export MYSQL_HOST="$HOST_IP"
 export MONGODB_HOST="$HOST_IP"
 export MYSQL_PORT="3306"
 export MONGODB_PORT="27017"
+export $(< .env)
 
 echo ""
 echo "📝 Configuration:"
@@ -60,6 +62,13 @@ if [ -d "src/converter/manifests" ]; then
     kubectl apply -f src/converter/manifests/secret.yaml
     kubectl apply -f src/converter/manifests/converter-deploy.yaml
 fi
+
+
+# Deploy notification service
+echo "Deploying notification service..."
+envsubst < src/notification/manifests/secret.yaml.template | kubectl apply -f -
+kubectl apply -f src/notification/manifests/notification-deploy.yaml
+kubectl apply -f src/notification/manifests/configmap.yaml
 
 echo ""
 echo "✅ Deployment complete!"
