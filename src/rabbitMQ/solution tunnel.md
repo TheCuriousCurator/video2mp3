@@ -51,15 +51,25 @@ Credentials: `guest` / `guest`
 
 **Gateway:**
 ```bash
-kubectl port-forward service/gateway 8080:8080 > /tmp/gateway-pf.log 2>&1 &
+sudo kubectl port-forward service/gateway 80:8080 > /tmp/gateway-pf.log 2>&1 &
 ```
-Access at: http://localhost:8080 or http://video2mp3.com:8080
+Access at: http://localhost/login or http://video2mp3.com/login (clean URLs!)
 
-**Auth Service:**
+**Example login command:**
+```bash
+curl -X POST -u "dksahuji@gmail.com:Admin123" http://video2mp3.com/login
+```
+Expected: Returns JWT token
+
+**Note:** Port 80 requires sudo. If you prefer no sudo, use port 8080 instead and add `:8080` to URLs.
+
+**Auth Service (optional - for direct access):**
 ```bash
 kubectl port-forward service/auth 5000:5000 > /tmp/auth-pf.log 2>&1 &
 ```
 Access at: http://localhost:5000
+
+**Note:** For auth service issues (404 errors, MySQL connectivity), see [Auth Service Solution Guide](../auth/solution-auth-login.md)
 
 #### Verify Port Forward is Working:
 ```bash
@@ -135,3 +145,154 @@ The tunnel output showed `services: []` because:
 2. All project services are ClusterIP or NodePort
 3. Ingress controller is NodePort (not LoadBalancer)
 4. Therefore, tunnel had nothing to expose
+
+## Complete Debugging Journey
+
+### Initial Investigation: Why is Tunnel Empty?
+
+**Command run:**
+```bash
+minikube tunnel
+```
+
+**Output:**
+```
+Status:
+        machine: minikube
+        pid: 12345
+        route: 10.96.0.0/12 -> 192.168.49.2
+        minikube: Running
+        services: []
+        errors: none
+```
+
+**Question:** Why `services: []`? Nothing is being tunneled!
+
+### Step-by-Step Investigation
+
+**1. What services exist?**
+```bash
+kubectl get services --all-namespaces
+```
+Output showed all services as **ClusterIP** or **NodePort** type.
+
+**Key Learning:** `minikube tunnel` only works with **LoadBalancer** services!
+
+**2. Do we have any LoadBalancer services?**
+```bash
+kubectl get services --all-namespaces -o wide | grep LoadBalancer
+```
+No output - no LoadBalancer services found.
+
+**Conclusion:** That's why tunnel shows `services: []` - there's nothing for it to tunnel!
+
+**3. How are we accessing services then?**
+```bash
+kubectl get ingress --all-namespaces
+```
+Found Ingress resources configured for `rabbitmq-manager.com` and `video2mp3.com`.
+
+**Key Learning:** Project uses **Ingress** (nginx) for routing, not LoadBalancer services!
+
+**4. Where does Ingress point to?**
+```bash
+kubectl get ingress rabbitmq-ingress -o yaml | grep -A 5 "host:"
+```
+Shows: `rabbitmq-manager.com` → `192.168.49.2` (minikube IP)
+
+**5. Where does /etc/hosts point?**
+```bash
+grep -E "(video2mp3|rabbitmq-manager)" /etc/hosts
+```
+Output: `127.0.0.1 rabbitmq-manager.com` and `127.0.0.1 video2mp3.com`
+
+**Problem Found!** Mismatch:
+- `/etc/hosts`: Points domains to `127.0.0.1` (localhost)
+- Ingress: Routes traffic at `192.168.49.2` (minikube IP)
+- Result: Browser goes to localhost, but Ingress isn't there!
+
+### Solutions Analysis
+
+**Option A: Update /etc/hosts to minikube IP**
+```bash
+sudo sed -i 's/127.0.0.1 rabbitmq-manager.com/192.168.49.2 rabbitmq-manager.com/' /etc/hosts
+```
+- ✅ Simulates production Ingress routing
+- ❌ Requires system file modification
+- ❌ Breaks if minikube IP changes
+
+**Option B: Port Forwarding (CHOSEN)**
+```bash
+kubectl port-forward service/gateway 80:8080 &
+kubectl port-forward pod/rabbitmq-0 15672:15672 &
+```
+- ✅ Works with existing `/etc/hosts` (127.0.0.1)
+- ✅ No system file changes
+- ✅ Easy to start/stop
+- ❌ Requires manually starting port forwards
+
+**Why Port Forwarding Works:**
+1. `/etc/hosts` resolves `video2mp3.com` → `127.0.0.1` ✅
+2. `kubectl port-forward` listens on `127.0.0.1:80` ✅
+3. Forwards directly to pod/service in cluster ✅
+4. Bypasses Ingress entirely ✅
+
+### Understanding the Architecture
+
+**With Ingress (Production-like):**
+```
+Browser → Domain (video2mp3.com)
+       ↓
+/etc/hosts → 192.168.49.2 (minikube IP)
+       ↓
+Ingress Controller (nginx on minikube)
+       ↓
+Routes based on hostname rules
+       ↓
+Gateway Service (ClusterIP)
+       ↓
+Gateway Pod
+```
+
+**With Port Forwarding (Development):**
+```
+Browser → Domain (video2mp3.com)
+       ↓
+/etc/hosts → 127.0.0.1 (localhost)
+       ↓
+kubectl port-forward (listening on localhost)
+       ↓
+Direct tunnel to Gateway Service
+       ↓
+Gateway Pod
+```
+
+**Key Difference:** Port forwarding creates a direct tunnel, bypassing Ingress.
+
+## Related Issues & Solutions
+
+### Auth Service Login Problems
+If you encounter issues with the auth service `/login` endpoint:
+- **404 errors:** Check [Auth Service Solution Guide](../auth/solution-auth-login.md)
+- **MySQL connection errors:** See MySQL configuration section in auth solution guide
+- **Port forwarding setup:** Both guides use the same port forwarding approach
+
+### Quick Start Script
+
+A convenience script is provided at the project root:
+
+```bash
+# Start all services at once
+./start-services.sh
+```
+
+This script:
+- Starts gateway (port 80 for clean URLs), auth (5000), and RabbitMQ (15672)
+- Shows URLs and PIDs for each service
+- Provides test commands
+- Uses sudo for port 80 (will prompt for password)
+
+**Stop all services:**
+```bash
+sudo pkill -f 'kubectl port-forward'
+```
