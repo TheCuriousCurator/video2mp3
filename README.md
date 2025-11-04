@@ -86,6 +86,16 @@ sudo apt-get install libmysqlclient-dev
 - kubectl configured for minikube cluster
 ```
 
+### Installation Links
+
+- **[Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download)** - Local Kubernetes cluster
+- **[Docker Desktop](https://docs.docker.com/desktop/setup/install/linux/)** - Container platform
+- **[k9s](https://github.com/derailed/k9s)** - Kubernetes CLI management tool
+- **[MongoDB](https://www.mongodb.com/docs/manual/administration/install-community/?operating-system=linux&linux-distribution=ubuntu&linux-package=default&search-linux=with-search-linux)** - Document database
+- **[MySQL](https://dev.mysql.com/doc/refman/9.2/en/linux-installation-debian.html)** - Relational database (Debian/Ubuntu)
+- **[MySQL Ubuntu Guide](https://documentation.ubuntu.com/server/how-to/databases/install-mysql/)** - Alternative MySQL installation guide
+- **[HTTP Authentication](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Authentication#authentication_schemes)** - Reference for authentication schemes
+
 ## Project Structure
 
 ```
