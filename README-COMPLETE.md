@@ -7,49 +7,78 @@ A microservices-based video-to-MP3 conversion system built with Python, deployed
 ## Architecture
 
 ```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │ HTTP Request
-       ↓
-┌─────────────┐     ┌──────────────┐
-│   Gateway   │────→│    Auth      │
-│   (Flask)   │     │  (Flask)     │
-└──────┬──────┘     └──────┬───────┘
-       │                   │
-       │                   │ MySQL
-       │                   ↓
-       │            ┌──────────────┐
-       │            │    MySQL     │
-       │            │ (Host: 3306) │
-       │            └──────────────┘
-       │
-       │ Publish to "video" queue
-       ↓
-┌─────────────┐
-│  RabbitMQ   │
-│ (Queue Mgr) │
-└──────┬──────┘
-       │ Consume from "video" queue
-       ↓
-┌─────────────┐     ┌──────────────┐
-│  Converter  │────→│   MongoDB    │
-│  (Worker)   │     │ (Host: 27017)│
-└──────┬──────┘     └──────────────┘
-       │ Publish to "mp3" queue
-       ↓
-┌─────────────┐
-│  RabbitMQ   │
-└──────┬──────┘
-       │ Consume from "mp3" queue
-       ↓
-┌─────────────┐     ┌──────────────┐
-│Notification │────→│ Gmail SMTP   │
-│  (Worker)   │     │  (Port 587)  │
-└─────────────┘     └──────────────┘
-       │
-       ↓
-  User Email
+┌─────────────────────────────────────────────────────────────┐
+│                         CLIENT                               │
+│            (curl / Browser / Mobile App)                     │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP Request (JWT Token)
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      GATEWAY SERVICE                         │
+│                   (Flask, Port 8080)                         │
+│  - Login Proxy                                               │
+│  - JWT Validation                                            │
+│  - Video Upload                                              │
+│  - MP3 Download                                              │
+└────┬──────────────┬─────────────┬──────────────┬────────────┘
+     │              │             │              │
+     │(login)       │(validate)   │(store)       │(queue)
+     ↓              │             ↓              ↓
+┌─────────────┐     │      ┌─────────────┐  ┌─────────────┐
+│AUTH SERVICE │     │      │  MongoDB    │  │  RabbitMQ   │
+│(Flask:5000) │     │      │(Host:27017) │  │(StatefulSet)│
+│             │     │      │             │  │             │
+│- JWT Gen    │◀────┘      │- GridFS     │  │- video queue│
+│- JWT Valid  │            │  Videos     │  │- mp3 queue  │
+│             │            │- GridFS MP3s│  │             │
+└─────┬───────┘            └─────────────┘  └──────┬──────┘
+      │                                            │
+      │ MySQL Query                                │ Consume
+      ↓                                            ↓
+┌─────────────┐                          ┌─────────────────┐
+│   MySQL     │                          │   CONVERTER     │
+│(Host:3306)  │                          │   (4 Workers)   │
+│             │                          │                 │
+│- auth DB    │                          │- FFmpeg         │
+│- user table │                          │- MoviePy        │
+└─────────────┘                          │- Video→MP3      │
+                                         └────────┬────────┘
+                                                  │
+                                                  │ Store MP3
+                                                  ↓
+                                         ┌─────────────────┐
+                                         │   MongoDB       │
+                                         │  (GridFS MP3)   │
+                                         └────────┬────────┘
+                                                  │
+                                         Publish to mp3 queue
+                                                  ↓
+                                         ┌─────────────────┐
+                                         │   RabbitMQ      │
+                                         │   mp3 queue     │
+                                         └────────┬────────┘
+                                                  │ Consume
+                                                  ↓
+                                         ┌─────────────────┐
+                                         │  NOTIFICATION   │
+                                         │   (4 Workers)   │
+                                         │                 │
+                                         │- Gmail SMTP     │
+                                         │- Send Email     │
+                                         └────────┬────────┘
+                                                  │
+                                                  ↓
+                                         ┌─────────────────┐
+                                         │   User Email    │
+                                         │                 │
+                                         │ Subject:        │
+                                         │ "MP3 Download"  │
+                                         │                 │
+                                         │ Body:           │
+                                         │ "mp3 file_id:   │
+                                         │  <ObjectId> is  │
+                                         │  now ready!"    │
+                                         └─────────────────┘
 ```
 
 ### Services
