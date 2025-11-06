@@ -6,6 +6,10 @@ A microservices-based video-to-MP3 conversion system built with Python, deployed
 
 ## Architecture
 
+![Architecture Diagram](./image.png)
+
+### Detailed Flow Diagram
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         CLIENT                               │
