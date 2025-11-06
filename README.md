@@ -4,6 +4,8 @@ A production-ready microservices architecture for converting video files to MP3 
 
 ## Architecture Overview
 
+![Architecture Diagram](./image.png)
+
 This project demonstrates a complete microservices system with:
 
 - **Gateway Service** (Flask) - API entry point, file upload/download, message publishing
